@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>No_Hope_No_Way</title>
+    <style>
+        @font-face {
+            font-family: 'Consolas';
+            src: url('CONSOLA.TTF') format('truetype');
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: black;
+        }
+
+        #video1 {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+        }
+
+        .text {
+            position: absolute;
+            font-size: 12pt;
+            font-family: Consolas, sans-serif;
+            font-weight: normal;
+            color: white;
+            opacity: 1;
+            transition: opacity 1.5s ease, transform 3s ease;
+            z-index: 10001;
+        }
+
+        /* 검정 화면 스타일 */
+        #blackScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: black;
+            z-index: 9999;
+            opacity: 1;
+            transition: opacity 2s ease;
+        }
+
+        #videoSnippet {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            z-index: 10000;
+            background-color: black;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div id="blackScreen"></div> <!-- 검정 화면 추가 -->
+    <video id="video1" src="video2.mp4" preload="auto"></video>
+    <audio id="audio1" src="song1.mp3" preload="auto"></audio>
+
+    <script>
+        const video = document.getElementById('video1');
+        const audio = document.getElementById('audio1');
+        const blackScreen = document.getElementById('blackScreen');
+        video.currentTime = 5;
+        video.playbackRate = 0.5;
+        video.pause();
+
+        const maxTextCount = 5;
+        let texts = [];
+        let targetTime = 5;
+        const controlZoneStartVW = 5;
+        const controlZoneWidthVW = 85;
+
+        let lastUpdateTime = 0;
+        const throttleTime = 100;
+
+        // 검정 화면을 클릭했을 때 검정 화면이 서서히 사라지고 음악 재생
+        blackScreen.addEventListener('click', () => {
+            blackScreen.style.opacity = 0;
+            setTimeout(() => {
+                blackScreen.style.display = 'none';
+                audio.play();
+            }, 2000);
+        });
+
+        let firstClick = true;
+        document.addEventListener('click', (e) => {
+            if (firstClick) {
+                firstClick = false;
+                return;
+            }
+
+            // 'NO WAY' 텍스트 30개 생성 및 3초간 이동
+            const noWayTexts = [];
+            for (let i = 0; i < 30; i++) {
+                const text = document.createElement('div');
+                text.classList.add('text');
+                text.innerText = 'NO WAY';
+                text.style.left = `${e.clientX}px`;
+                text.style.top = `${e.clientY}px`;
+                document.body.appendChild(text);
+                noWayTexts.push(text);
+
+                // 텍스트 애니메이션 설정 (3초간 가장자리로 퍼진)
+                const randomX = Math.random() * window.innerWidth;
+                const randomY = Math.random() * window.innerHeight;
+                setTimeout(() => {
+                    text.style.transform = `translate(${randomX - e.clientX}px, ${randomY - e.clientY}px)`;
+                }, 0);
+            }
+
+            // 2초간 텍스트들이 사라지기
+            setTimeout(() => {
+                noWayTexts.forEach(text => {
+                    text.style.opacity = 0;
+                    setTimeout(() => {
+                        text.remove();
+                    }, 2000);
+                });
+            }, 3000);
+
+            // 'video3.mp4' 비디오 요소 생성 및 재생
+            let videoSnippet = document.getElementById('videoSnippet');
+            if (!videoSnippet) {
+                videoSnippet = document.createElement('video');
+                videoSnippet.src = 'video3.mp4';
+                videoSnippet.id = 'videoSnippet';
+                videoSnippet.preload = 'auto';
+                videoSnippet.muted = true;
+                videoSnippet.style.display = 'block';
+                document.body.appendChild(videoSnippet);
+            } else {
+                videoSnippet.style.display = 'block';
+            }
+
+            // 비디오 로드 강제 실행 및 로드 완료 여부 확인 후 재생 보장
+            function playVideoSnippet(videoElement) {
+                // 비디오가 로드되었는지 확인
+                if (videoElement.readyState >= 2) {
+                    // 랜덤 시작 시간 설정
+                    const videoDuration = videoElement.duration;
+                    const randomStartTime = Math.random() * (videoDuration - 0.5);
+                    videoElement.currentTime = randomStartTime;
+                    videoElement.play().catch(error => {
+                        console.error('비디오 재생 중 오류 발생:', error);
+                    });
+
+                    // 0.5초 후에 비디오를 숨기기
+                    setTimeout(() => {
+                        videoElement.pause();
+                        videoElement.style.display = 'none';
+                    }, 500);
+                } else {
+                    // 비디오가 아직 로드되지 않았으면, 로드 완료 후 재생
+                    videoElement.addEventListener('loadeddata', () => {
+                        playVideoSnippet(videoElement);
+                    }, { once: true });
+                }
+            }
+
+            // 비디오 재생 함수 호출
+            playVideoSnippet(videoSnippet);
+        });
+
+        let mouseMoveTimeout;
+        document.addEventListener('mousemove', (e) => {
+            video.play();
+            if (mouseMoveTimeout) {
+                clearTimeout(mouseMoveTimeout);
+            }
+            mouseMoveTimeout = setTimeout(() => {
+                video.pause();
+            }, 1000);
+            const currentTime = Date.now();
+
+            // 마우스 업데이트를 일정 시간 간격 내에서만 처리
+            if (currentTime - lastUpdateTime > throttleTime) {
+                lastUpdateTime = currentTime;
+
+                const windowWidth = window.innerWidth;
+                const mouseX = e.clientX;
+
+                // 마우스가 vw 범위 내에 있을 때만 비디오 제어
+                const controlZoneStartPX = (controlZoneStartVW / 100) * windowWidth;
+                const controlZoneWidthPX = (controlZoneWidthVW / 100) * windowWidth;
+
+                if (mouseX >= controlZoneStartPX && mouseX <= controlZoneStartPX + controlZoneWidthPX) {
+                    const relativeMouseX = mouseX - controlZoneStartPX;
+                    const normalizedPosition = Math.max(0, Math.min(1, relativeMouseX / controlZoneWidthPX));
+                    const videoDuration = video.duration || 10;
+                    targetTime = normalizedPosition * videoDuration;
+
+                    video.currentTime = Math.max(0, Math.min(videoDuration, targetTime));
+                }
+
+                // 텍스트 생성
+                const text = document.createElement('div');
+                text.classList.add('text');
+                text.style.left = `${mouseX + 20}px`;
+                text.style.top = `${e.clientY + 20}px`;
+
+                // 마우스 위치에 따라 텍스트 내용 변경
+                if (mouseX < windowWidth / 2) {
+                    text.innerText = 'Go to the right';
+                } else {
+                    text.innerText = 'Go to the left';
+                }
+
+                document.body.appendChild(text);
+                texts.push(text);
+
+                // 잔상 유지 및 사라지는 처리
+                if (texts.length > maxTextCount) {
+                    const oldText = texts.shift();
+                    oldText.style.opacity = 0;
+                    setTimeout(() => oldText.remove(), 1500);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
